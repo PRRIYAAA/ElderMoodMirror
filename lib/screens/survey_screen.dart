@@ -1,6 +1,8 @@
+import 'dart:convert'; // <-- Added for JSON encoding/decoding
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'start_screen.dart';
+import 'survey_history_screen.dart';
 
 class SurveyScreen extends StatefulWidget {
   const SurveyScreen({Key? key}) : super(key: key);
@@ -48,20 +50,36 @@ class _SurveyScreenState extends State<SurveyScreen> {
     }
 
     final prefs = await SharedPreferences.getInstance();
-    for (var entry in responses.entries) {
-      await prefs.setString(entry.key, entry.value);
+
+    // Load existing survey history
+    String? existingData = prefs.getString('survey_history');
+    List<Map<String, String>> history = [];
+
+    if (existingData != null) {
+      List<dynamic> decoded = jsonDecode(existingData);
+      history = decoded.map((e) => Map<String, String>.from(e)).toList();
     }
 
-    print("📋 Survey Responses:");
-    responses.forEach((key, value) {
-      print("$key: $value");
-    });
+    // Add today's response
+    history.add(Map<String, String>.from(responses));
+
+    // Keep only last 7 days
+    if (history.length > 7) {
+      history = history.sublist(history.length - 7);
+    }
+
+    // Save back to SharedPreferences
+    await prefs.setString('survey_history', jsonEncode(history));
+
+    print("📋 Survey Submitted. 7-Day History:");
+    for (int i = 0; i < history.length; i++) {
+      print("Day ${i + 1}: ${history[i]}");
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Survey submitted!")),
     );
 
-// Navigate to StartScreen after short delay
     Future.delayed(const Duration(seconds: 1), () {
       Navigator.pushAndRemoveUntil(
         context,
@@ -69,7 +87,6 @@ class _SurveyScreenState extends State<SurveyScreen> {
             (route) => false,
       );
     });
-
   }
 
   Widget _buildQuestion(String key, String question, List<String> options) {
@@ -164,6 +181,25 @@ class _SurveyScreenState extends State<SurveyScreen> {
           children: [
             ...getQuestionWidgets(),
             const SizedBox(height: 20),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.history),
+              label: const Text("View Past Reports"),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SurveyHistoryScreen()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal.shade700,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+
             Center(
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.send),
