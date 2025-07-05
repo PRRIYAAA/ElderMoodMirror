@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'user_info_screen.dart';// Ensure this import points to your actual UserInfoScreen file
 import 'chat_screen.dart';
-import 'sum_screen.dart';
+import 'mood_camera_screen.dart';
+
 
 class StartScreen extends StatelessWidget {
   final Widget nextScreen;
@@ -47,24 +48,34 @@ class StartScreen extends StatelessWidget {
               },
               child: const Text("Start Mood Check"),
             ),
+        /*ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ChatPage()),
+                  );
+                },
+                child: Text("Try AI Chat"),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SumScreen()),
+                  );
+                },
+                child: Text("Sum it"),
+              ),*/
             ElevatedButton(
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const ChatPage()),
+                  MaterialPageRoute(builder: (context) => const MoodCameraScreen()),
                 );
               },
-              child: Text("Try AI Chat"),
+              child: Text("Camera Detection"),
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SumScreen()),
-                );
-              },
-              child: Text("Sum it"),
-            ),
+
           ],
         ),
       ),

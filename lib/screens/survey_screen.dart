@@ -1,8 +1,9 @@
-import 'dart:convert'; // <-- Added for JSON encoding/decoding
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'start_screen.dart';
 import 'survey_history_screen.dart';
+import 'package:http/http.dart' as http;
 
 class SurveyScreen extends StatefulWidget {
   const SurveyScreen({Key? key}) : super(key: key);
@@ -31,6 +32,30 @@ class _SurveyScreenState extends State<SurveyScreen> {
     setState(() {});
   }
 
+  Future<void> sendToPythonServer(List<Map<String, String>> history) async {
+    try {
+      final response = await http.post(
+        Uri.parse("http://192.168.1.5:5000/analyze"),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'daily_logs': history}),
+      );
+
+      if (response.statusCode == 200) {
+        final result = jsonDecode(response.body);
+        print("✅ Sent to Python server");
+        print("Dominant Mood: ${result['dominant_mood']}");
+        print("Suggestions:");
+        for (var s in result['suggestions']) {
+          print("- $s");
+        }
+      } else {
+        print("❌ Server error: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("❌ Exception sending to server: $e");
+    }
+  }
+
   String get category {
     if (disability == 'Bedridden') return 'Bedridden';
     if (tabletName != null && tabletName!.isNotEmpty && disability == 'None') {
@@ -51,7 +76,6 @@ class _SurveyScreenState extends State<SurveyScreen> {
 
     final prefs = await SharedPreferences.getInstance();
 
-    // Load existing survey history
     String? existingData = prefs.getString('survey_history');
     List<Map<String, String>> history = [];
 
@@ -60,21 +84,19 @@ class _SurveyScreenState extends State<SurveyScreen> {
       history = decoded.map((e) => Map<String, String>.from(e)).toList();
     }
 
-    // Add today's response
     history.add(Map<String, String>.from(responses));
-
-    // Keep only last 7 days
     if (history.length > 7) {
       history = history.sublist(history.length - 7);
     }
 
-    // Save back to SharedPreferences
     await prefs.setString('survey_history', jsonEncode(history));
 
     print("📋 Survey Submitted. 7-Day History:");
     for (int i = 0; i < history.length; i++) {
       print("Day ${i + 1}: ${history[i]}");
     }
+
+    await sendToPythonServer(history);
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Survey submitted!")),
@@ -114,7 +136,7 @@ class _SurveyScreenState extends State<SurveyScreen> {
     List<Widget> questions = [];
 
     questions.addAll([
-      _buildQuestion("breakfast", "🍽️ Did you eat breakfast?", ["Yes", "No"]),
+      _buildQuestion("breakfast", "🍽 Did you eat breakfast?", ["Yes", "No"]),
       _buildQuestion("lunch", "🍱 Did you eat lunch?", ["Yes", "No"]),
       _buildQuestion("dinner", "🍛 Did you eat dinner?", ["Yes", "No"]),
       _buildQuestion("exercise", "🏃 Did you do any exercise today?", ["Yes", "No"]),
@@ -132,18 +154,18 @@ class _SurveyScreenState extends State<SurveyScreen> {
         _buildQuestion("water", "💧 Did you drink enough water today?", ["Yes", "No"]),
         _buildQuestion("social", "👥 Did you speak to someone today?", ["Yes", "No"]),
         _buildQuestion("energy", "💪 How was your energy today?", ["High", "Okay", "Low"]),
-        _buildQuestion("pain", "❤️ Any pain today?", ["No pain", "Mild", "Moderate"]),
+        _buildQuestion("pain", "❤ Any pain today?", ["No pain", "Mild", "Moderate"]),
       ]);
     } else if (category == 'Normal & Medication') {
       questions.addAll([
         _buildQuestion("medicine", "💊 Did you take your tablets today?", ["Yes", "No"]),
-        _buildQuestion("dose", "⏱️ Was it the correct time and dose?", ["Yes", "No"]),
+        _buildQuestion("dose", "⏱ Was it the correct time and dose?", ["Yes", "No"]),
         _buildQuestion("sleep", "😴 Did you sleep well last night?", ["Good", "Average", "Poor"]),
         _buildQuestion("mood", "😊 How is your mood today?", ["Happy", "Calm", "Anxious", "Sad"]),
         _buildQuestion("water", "💧 Did you drink enough water today?", ["Yes", "No"]),
         _buildQuestion("social", "👥 Did you speak to someone today?", ["Yes", "No"]),
         _buildQuestion("energy", "💪 How was your energy today?", ["High", "Okay", "Low"]),
-        _buildQuestion("pain", "❤️ Any pain today?", ["No pain", "Mild", "Moderate"]),
+        _buildQuestion("pain", "❤ Any pain today?", ["No pain", "Mild", "Moderate"]),
       ]);
     } else if (category == 'Bedridden') {
       questions.addAll([
@@ -154,7 +176,7 @@ class _SurveyScreenState extends State<SurveyScreen> {
         _buildQuestion("water", "💧 Did you drink enough water today?", ["Yes", "No"]),
         _buildQuestion("social", "👥 Did you speak to someone today?", ["Yes", "No"]),
         _buildQuestion("energy", "💪 How was your energy today?", ["High", "Okay", "Low"]),
-        _buildQuestion("pain", "❤️ Any pain today?", ["No pain", "Mild", "Moderate"]),
+        _buildQuestion("pain", "❤ Any pain today?", ["No pain", "Mild", "Moderate"]),
       ]);
     }
 
@@ -181,7 +203,6 @@ class _SurveyScreenState extends State<SurveyScreen> {
           children: [
             ...getQuestionWidgets(),
             const SizedBox(height: 20),
-            const SizedBox(height: 12),
             ElevatedButton.icon(
               icon: const Icon(Icons.history),
               label: const Text("View Past Reports"),
@@ -199,7 +220,7 @@ class _SurveyScreenState extends State<SurveyScreen> {
                 ),
               ),
             ),
-
+            const SizedBox(height: 20),
             Center(
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.send),
