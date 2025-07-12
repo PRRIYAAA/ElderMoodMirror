@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-// Screens
 import 'screens/user_info_screen.dart';
 import 'screens/start_screen.dart';
 import 'screens/survey_screen.dart';
-import 'screens/chat_screen.dart';
-import 'package:http/http.dart' as http;
 
 void main() {
   runApp(const ElderMoodMirrorApp());
