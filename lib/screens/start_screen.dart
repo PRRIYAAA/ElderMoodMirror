@@ -1,11 +1,62 @@
 import 'package:flutter/material.dart';
-import 'user_info_screen.dart';// Ensure this import points to your actual UserInfoScreen file
-import 'chat_screen.dart';
-import 'sum_screen.dart';
+import 'user_info_screen.dart';
+import 'mood_camera_screen.dart';
 
-class StartScreen extends StatelessWidget {
+
+class StartScreen extends StatefulWidget {
   final Widget nextScreen;
   const StartScreen({super.key, required this.nextScreen});
+
+  @override
+  State<StartScreen> createState() => _StartScreenState();
+}
+
+class _StartScreenState extends State<StartScreen> {
+  String _nextSlotMessage = "";
+  bool _hasInitialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasInitialized) {
+      _calculateNextSlotMessage(); // safe to use context here
+      _hasInitialized = true;
+    }
+  }
+
+  void _calculateNextSlotMessage() {
+    final now = DateTime.now();
+
+    final morning = DateTime(now.year, now.month, now.day, 6);
+    final afternoon = DateTime(now.year, now.month, now.day, 12);
+    final evening = DateTime(now.year, now.month, now.day, 18);
+
+    DateTime? nextSlot;
+
+    if (now.isBefore(morning)) {
+      nextSlot = morning;
+    } else if (now.isBefore(afternoon)) {
+      nextSlot = afternoon;
+    } else if (now.isBefore(evening)) {
+      nextSlot = evening;
+    }
+
+    if (nextSlot != null) {
+      final diff = nextSlot.difference(now);
+      final hours = diff.inHours;
+      final minutes = diff.inMinutes % 60;
+      final formattedTime = TimeOfDay.fromDateTime(nextSlot).format(context);
+
+      setState(() {
+        _nextSlotMessage =
+        "Next slot: $formattedTime (in ${hours}h ${minutes}m)";
+      });
+    } else {
+      setState(() {
+        _nextSlotMessage = "No more slots today. Try again tomorrow.";
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +71,8 @@ class StartScreen extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const UserInfoScreen(isEditing: true)),
+                MaterialPageRoute(
+                    builder: (_) => const UserInfoScreen(isEditing: true)),
               );
             },
           )
@@ -30,19 +82,25 @@ class StartScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.face_retouching_natural, size: 80, color: Colors.teal),
+            const Icon(Icons.face_retouching_natural,
+                size: 80, color: Colors.teal),
             const SizedBox(height: 20),
             const Text(
               "Hello 👋\nHow are you feeling today?",
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 22),
             ),
+            const SizedBox(height: 10),
+            Text(
+              _nextSlotMessage,
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            ),
             const SizedBox(height: 30),
             ElevatedButton(
               onPressed: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (_) => nextScreen),
+                  MaterialPageRoute(builder: (_) => widget.nextScreen),
                 );
               },
               child: const Text("Start Mood Check"),
@@ -51,20 +109,14 @@ class StartScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const ChatPage()),
+                  MaterialPageRoute(
+                      builder: (_) => const MoodCameraScreen()),
                 );
               },
-              child: Text("Try AI Chat"),
+              child: const Text("Camera Detection"),
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SumScreen()),
-                );
-              },
-              child: Text("Sum it"),
-            ),
+
+
           ],
         ),
       ),

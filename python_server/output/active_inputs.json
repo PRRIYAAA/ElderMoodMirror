@@ -1,0 +1,102 @@
+{
+  "daily_logs": [
+    {
+      "day": "Day 1",
+      "breakfast": "Yes",
+      "lunch": "Yes",
+      "dinner": "Yes",
+      "exercise": "No",
+      "sleep": "Good",
+      "medicine": "Yes, few health issues today",
+      "mood": "Calm",
+      "water": "Yes",
+      "energy": "Okay",
+      "pain": "Mild",
+      "social": "No"
+    },
+    {
+      "day": "Day 2",
+      "breakfast": "No",
+      "lunch": "No",
+      "dinner": "No",
+      "exercise": "No",
+      "sleep": "Poor",
+      "medicine": "Severe checked with doctor",
+      "mood": "Sad",
+      "water": "No",
+      "energy": "Okay",
+      "pain": "No pain",
+      "social": "No"
+    },
+    {
+      "day": "Day 3",
+      "breakfast": "No",
+      "lunch": "No",
+      "dinner": "No",
+      "exercise": "No",
+      "sleep": "Average",
+      "medicine": "Severe checked with doctor",
+      "mood": "Calm",
+      "water": "No",
+      "energy": "Okay",
+      "pain": "Moderate",
+      "social": "No"
+    },
+    {
+      "day": "Day 4",
+      "breakfast": "No",
+      "lunch": "No",
+      "dinner": "No",
+      "exercise": "No",
+      "sleep": "Average",
+      "medicine": "Yes, few health issues today",
+      "mood": "Calm",
+      "water": "No",
+      "energy": "Okay",
+      "pain": "Mild",
+      "social": "No"
+    },
+    {
+      "day": "Day 5",
+      "breakfast": "No",
+      "lunch": "No",
+      "dinner": "No",
+      "exercise": "No",
+      "sleep": "Average",
+      "medicine": "Yes, few health issues today",
+      "mood": "Happy",
+      "water": "No",
+      "energy": "High",
+      "pain": "No pain",
+      "social": "No"
+    },
+    {
+      "day": "Day 6",
+      "breakfast": "Yes",
+      "lunch": "Yes",
+      "dinner": "Yes",
+      "exercise": "Yes",
+      "sleep": "Good",
+      "medicine": "No medicine",
+      "mood": "Calm",
+      "water": "No",
+      "energy": "Okay",
+      "pain": "Mild",
+      "social": "No"
+    },
+    {
+      "day": "Day 7",
+      "breakfast": "Yes",
+      "lunch": "Yes",
+      "dinner": "Yes",
+      "exercise": "Yes",
+      "sleep": "Good",
+      "medicine": "No medicine",
+      "mood": "Happy",
+      "water": "Yes",
+      "energy": "Okay",
+      "pain": "Mild",
+      "social": "Yes"
+    }
+  ]
+}

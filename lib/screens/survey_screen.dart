@@ -1,9 +1,14 @@
-import 'dart:convert'; // <-- Added for JSON encoding/decoding
+import 'dart:convert';
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_sound/flutter_sound.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
 import 'start_screen.dart';
 import 'survey_history_screen.dart';
-
+import 'package:http/http.dart' as http; // Add this at the top if not already
 class SurveyScreen extends StatefulWidget {
   const SurveyScreen({Key? key}) : super(key: key);
 
@@ -14,9 +19,9 @@ class SurveyScreen extends StatefulWidget {
 class _SurveyScreenState extends State<SurveyScreen> {
   final Map<String, String> responses = {};
   final List<String> requiredKeys = [];
-
   String? disability;
   String? tabletName;
+  String? recordedAudioPath;
 
   @override
   void initState() {
@@ -39,6 +44,23 @@ class _SurveyScreenState extends State<SurveyScreen> {
     return 'Normal';
   }
 
+  void _goToVoiceRecordingPage() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => VoiceRecordingScreen(),
+      ),
+    );
+
+    if (result != null && result is String) {
+      setState(() {
+        recordedAudioPath = result;
+      });
+
+
+      _submitSurvey(); // ✅ Now submit with voice_mood, voice_text, voice_score
+    }
+  }
   void _submitSurvey() async {
     for (String key in requiredKeys) {
       if (!responses.containsKey(key) || responses[key]!.trim().isEmpty) {
@@ -50,8 +72,6 @@ class _SurveyScreenState extends State<SurveyScreen> {
     }
 
     final prefs = await SharedPreferences.getInstance();
-
-    // Load existing survey history
     String? existingData = prefs.getString('survey_history');
     List<Map<String, String>> history = [];
 
@@ -60,15 +80,16 @@ class _SurveyScreenState extends State<SurveyScreen> {
       history = decoded.map((e) => Map<String, String>.from(e)).toList();
     }
 
-    // Add today's response
-    history.add(Map<String, String>.from(responses));
+    Map<String, String> fullResponse = Map.from(responses);
+    if (recordedAudioPath != null) {
+      fullResponse['voice_clip'] = recordedAudioPath!;
+    }
 
-    // Keep only last 7 days
+    history.add(fullResponse);
     if (history.length > 7) {
       history = history.sublist(history.length - 7);
     }
 
-    // Save back to SharedPreferences
     await prefs.setString('survey_history', jsonEncode(history));
 
     print("📋 Survey Submitted. 7-Day History:");
@@ -77,7 +98,7 @@ class _SurveyScreenState extends State<SurveyScreen> {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Survey submitted!")),
+      const SnackBar(content: Text("Survey with voice submitted!")),
     );
 
     Future.delayed(const Duration(seconds: 1), () {
@@ -114,7 +135,7 @@ class _SurveyScreenState extends State<SurveyScreen> {
     List<Widget> questions = [];
 
     questions.addAll([
-      _buildQuestion("breakfast", "🍽️ Did you eat breakfast?", ["Yes", "No"]),
+      _buildQuestion("breakfast", "🍽 Did you eat breakfast?", ["Yes", "No"]),
       _buildQuestion("lunch", "🍱 Did you eat lunch?", ["Yes", "No"]),
       _buildQuestion("dinner", "🍛 Did you eat dinner?", ["Yes", "No"]),
       _buildQuestion("exercise", "🏃 Did you do any exercise today?", ["Yes", "No"]),
@@ -132,18 +153,18 @@ class _SurveyScreenState extends State<SurveyScreen> {
         _buildQuestion("water", "💧 Did you drink enough water today?", ["Yes", "No"]),
         _buildQuestion("social", "👥 Did you speak to someone today?", ["Yes", "No"]),
         _buildQuestion("energy", "💪 How was your energy today?", ["High", "Okay", "Low"]),
-        _buildQuestion("pain", "❤️ Any pain today?", ["No pain", "Mild", "Moderate"]),
+        _buildQuestion("pain", "❤ Any pain today?", ["No pain", "Mild", "Moderate"]),
       ]);
     } else if (category == 'Normal & Medication') {
       questions.addAll([
         _buildQuestion("medicine", "💊 Did you take your tablets today?", ["Yes", "No"]),
-        _buildQuestion("dose", "⏱️ Was it the correct time and dose?", ["Yes", "No"]),
+        _buildQuestion("dose", "⏱ Was it the correct time and dose?", ["Yes", "No"]),
         _buildQuestion("sleep", "😴 Did you sleep well last night?", ["Good", "Average", "Poor"]),
         _buildQuestion("mood", "😊 How is your mood today?", ["Happy", "Calm", "Anxious", "Sad"]),
         _buildQuestion("water", "💧 Did you drink enough water today?", ["Yes", "No"]),
         _buildQuestion("social", "👥 Did you speak to someone today?", ["Yes", "No"]),
         _buildQuestion("energy", "💪 How was your energy today?", ["High", "Okay", "Low"]),
-        _buildQuestion("pain", "❤️ Any pain today?", ["No pain", "Mild", "Moderate"]),
+        _buildQuestion("pain", "❤ Any pain today?", ["No pain", "Mild", "Moderate"]),
       ]);
     } else if (category == 'Bedridden') {
       questions.addAll([
@@ -154,7 +175,7 @@ class _SurveyScreenState extends State<SurveyScreen> {
         _buildQuestion("water", "💧 Did you drink enough water today?", ["Yes", "No"]),
         _buildQuestion("social", "👥 Did you speak to someone today?", ["Yes", "No"]),
         _buildQuestion("energy", "💪 How was your energy today?", ["High", "Okay", "Low"]),
-        _buildQuestion("pain", "❤️ Any pain today?", ["No pain", "Mild", "Moderate"]),
+        _buildQuestion("pain", "❤ Any pain today?", ["No pain", "Mild", "Moderate"]),
       ]);
     }
 
@@ -181,7 +202,6 @@ class _SurveyScreenState extends State<SurveyScreen> {
           children: [
             ...getQuestionWidgets(),
             const SizedBox(height: 20),
-            const SizedBox(height: 12),
             ElevatedButton.icon(
               icon: const Icon(Icons.history),
               label: const Text("View Past Reports"),
@@ -199,12 +219,12 @@ class _SurveyScreenState extends State<SurveyScreen> {
                 ),
               ),
             ),
-
+            const SizedBox(height: 16),
             Center(
               child: ElevatedButton.icon(
-                icon: const Icon(Icons.send),
-                label: const Text("Submit", style: TextStyle(fontSize: 18)),
-                onPressed: _submitSurvey,
+                icon: const Icon(Icons.mic),
+                label: const Text("Record Voice & Submit", style: TextStyle(fontSize: 18)),
+                onPressed: _goToVoiceRecordingPage,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.teal,
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
@@ -215,6 +235,88 @@ class _SurveyScreenState extends State<SurveyScreen> {
               ),
             )
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// --------------- Voice Recording Screen ---------------
+class VoiceRecordingScreen extends StatefulWidget {
+  const VoiceRecordingScreen({Key? key}) : super(key: key);
+
+  @override
+  State<VoiceRecordingScreen> createState() => _VoiceRecordingScreenState();
+}
+
+class _VoiceRecordingScreenState extends State<VoiceRecordingScreen> {
+  final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
+  String? _path;
+  bool isRecording = false;
+  Timer? _timer;
+  int _secondsLeft = 60;
+
+  @override
+  void initState() {
+    super.initState();
+    initRecorder();
+  }
+
+  Future<void> initRecorder() async {
+    await Permission.microphone.request();
+    await _recorder.openRecorder();
+    Directory tempDir = await getTemporaryDirectory();
+    _path = '${tempDir.path}/voice_clip.aac';
+    setState(() {});
+  }
+
+  void startRecording() async {
+    await _recorder.startRecorder(toFile: _path);
+    setState(() => isRecording = true);
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() => _secondsLeft--);
+      if (_secondsLeft == 0) stopRecording();
+    });
+  }
+
+  void stopRecording() async {
+    await _recorder.stopRecorder();
+    _timer?.cancel();
+    Navigator.pop(context, _path);
+  }
+
+  @override
+  void dispose() {
+    _recorder.closeRecorder();
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("🎤 Record Your Voice")),
+      body: Center(
+        child: isRecording
+            ? Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text("Recording..."),
+            const SizedBox(height: 20),
+            Text("⏱ $_secondsLeft seconds left", style: const TextStyle(fontSize: 24)),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.stop),
+              label: const Text("Stop Now"),
+              onPressed: stopRecording,
+            )
+          ],
+        )
+            : ElevatedButton.icon(
+          icon: const Icon(Icons.mic),
+          label: const Text("Start Recording"),
+          onPressed: startRecording,
         ),
       ),
     );
