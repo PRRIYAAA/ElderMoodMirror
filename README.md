@@ -74,7 +74,7 @@ cd frontend
 flutter pub get
 flutter run
 ```
----
+
 ##📊 Future Enhancements
 
 - AI-driven personalized recommendations.
