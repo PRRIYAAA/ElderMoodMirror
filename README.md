@@ -27,7 +27,7 @@ The app integrates **daily surveys, facial mood detection, motivational quotes, 
 
 | User Info Screen | Daily Survey | Mood Camera | Quote Display |
 |------------------|--------------|-------------|---------------|
-| ![User Info](assets/images/userinfo_dummy.png) | ![Survey](assets/images/survey_dummy.png) | ![Camera](assets/images/camera_dummy.png) | ![Quote](assets/images/quote_dummy.png) |
+| ![User Info](Screenshot%202025-09-09%20235644.png) | ![Survey](assets/images/survey_dummy.png) | ![Camera](assets/images/camera_dummy.png) | ![Quote](assets/images/quote_dummy.png) |
 
 *(Replace with real screenshots later)*  
 
