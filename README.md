@@ -1,84 +1,85 @@
-# Elder Mood Mirror 
+# Elder Mood Mirror (EMM)  
 
-An AI-powered mental wellness companion designed for elderly individuals.  
-The app monitors mood through surveys, facial expressions, and voice analysis, then provides personalized recommendations and well-being summaries.
-
----
-
-## 🎥 Demo Video
-
-![Demo Preview](demo.gif)  
-▶️ [Watch full demo video](ElderMoodMirror.mp4)
+Elder Mood Mirror (EMM) is an AI-powered elder-care mobile application designed to monitor, analyze, and improve the emotional well-being of elderly individuals.  
+The app integrates **daily surveys, facial mood detection, motivational quotes, and AI-generated insights** to provide emotional support and timely interventions.  
 
 ---
 
-## 🚀 Features
-- 📊 Daily & Weekly Mood Reports  
-- 😊 Mood detection via camera and surveys  
-- 💊 Tablet/medicine intake tracking  
-- 🛡️ Emergency alert suggestions  
-- 🗣️ Voice-assisted interaction for elderly accessibility  
-- 🌐 Multilingual support  
+## 🚀 Features  
+- 👤 **Elder Profile Setup** – Collects user details (name, age, gender, medical conditions).  
+- 📋 **Daily Mood Survey** – Personalized questions based on user profile.  
+- 📷 **Facial Expression Analysis** – Auto-detects mood using camera.  
+- 💬 **Motivational Quotes** – Provides positive reinforcement.  
+- 🤖 **AI-Powered Insights (Planned)** – Weekly/monthly reports, recommendations, and caregiver alerts.  
+- 🔔 **Reminders & Alerts (Planned)** – Daily medication reminders, mood alerts.  
 
 ---
 
-## 🛠️ Tech Stack
-- **Frontend**: Flutter  
-- **Backend**: Shared Preferences  
-- **Database**: SQLite / Firebase (Real time) 
-- **AI Integration**: OpenAI API for mood summarization & recommendations  
+## 📱 App Demo  
+
+### 🎥 Video Walkthrough  
+![App Demo](demo.gif)  
+*(Replace `demo.gif` with your converted GIF from local video)*  
 
 ---
 
-## 📥 Installation
-1. Clone the repository  
-   ```bash
-   git clone https://github.com/yourusername/elder-mood-mirror.git
-   cd elder-mood-mirror
-2. Install Flutter dependencies
-   ```
-   flutter pub get
-3. Run the app on an emulator or connected device
-   ```
-   flutter run
+## 🖼️ Screenshots  
 
-## 📊 System Architecture
-Diagram (Conceptual)
+| User Info Screen | Daily Survey | Mood Camera | Quote Display |
+|------------------|--------------|-------------|---------------|
+| ![User Info](assets/images/userinfo_dummy.png) | ![Survey](assets/images/survey_dummy.png) | ![Camera](assets/images/camera_dummy.png) | ![Quote](assets/images/quote_dummy.png) |
 
+*(Replace with real screenshots later)*  
+
+---
+
+## 🏗️ System Architecture  
+
+![System Architecture](assets/images/architecture.png)  
+
+**Workflow:**  
+1. Elder interacts with mobile app (Flutter).  
+2. Survey & mood inputs sent to backend (Flask API).  
+3. AI model analyzes inputs and generates mood insights.  
+4. Insights & recommendations returned to the app.  
+5. Notifications/reminders handled via Firebase (planned).  
+
+---
+
+## ⚙️ Tech Stack  
+
+### Frontend  
+- **Framework:** Flutter  
+- **Language:** Dart  
+
+### Backend  
+- **Framework:** Flask (Python)  
+- **Database:** JSON (current), SQLite / NoSQL (planned)  
+- **AI Models:** OpenCV + Pretrained Models + OpenAI API (planned)  
+
+### Notifications (Planned)  
+- Firebase Cloud Messaging (FCM)  
+
+---
+
+## 🛠️ Installation  
+
+### Clone Repository  
+```bash
+git clone https://github.com/<yourusername>/ElderMoodMirror.git
+cd ElderMoodMirror
+
+1. Flutter (Frontend) Setup
+cd frontend
+flutter pub get
+flutter run
 ```
-                ┌──────────────────────┐
-                │        User          │
-                │ (Elderly / Caregiver)│
-                └─────────┬────────────┘
-                          │
-                          ▼
-              ┌──────────────────────────┐
-              │    Flutter Mobile App    │
-              │ (Survey UI, Camera, Voice│
-              │   Inputs, Notifications) │
-              └─────────┬────────────────┘
-                        │
-        ┌───────────────┼────────────────┐
-        │                               │
-        ▼                               ▼
-┌───────────────────┐          ┌─────────────────────┐
-│ Local Database    │          │ Cloud Database       │
-│                   │          │ (Firebase / Firestore│
-│ Stores user data  │          │ Remote sync, reports │
-└───────────────────┘          └─────────────────────┘
-                        │
-                        ▼
-             ┌─────────────────────┐
-             │     Backend/API     │
-             │ (Node.js / Flask)   │
-             │ Data aggregation,   │
-             │ caregiver dashboard │
-             └─────────┬──────────┘
-                       │
-                       ▼
-           ┌─────────────────────────┐
-           │   AI Services (OpenAI)  │
-           │ - Mood summarization    │
-           │ - Recommendation engine │
-           └─────────────────────────┘
+---
+##📊 Future Enhancements
+
+- AI-driven personalized recommendations.
+- Caregiver monitoring dashboard.
+- Voice-based interactions for accessibility.
+- IoT/wearable integration for vitals.
+
 
