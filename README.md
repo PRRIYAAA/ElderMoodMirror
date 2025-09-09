@@ -9,9 +9,9 @@ The app monitors mood through surveys, facial expressions, and voice analysis, t
 
 ## 🎥 Demo Video
 
-![Demo](demo.mp4)
+![Demo](ElderMoodMirror.mp4)
 
-👉 [Download MP4](demo.mp4)
+👉 [Download MP4](ElderMoodMirror.mp4)
 ---
 
 ## 🚀 Features
