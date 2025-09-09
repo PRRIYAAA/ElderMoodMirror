@@ -1,7 +1,5 @@
 
-# Elder Mood Mirror 🪞
-
-![Logo](https://via.placeholder.com/150x150.png?text=Logo)
+# Elder Mood Mirror 
 
 An AI-powered mental wellness companion designed for elderly individuals.  
 The app monitors mood through surveys, facial expressions, and voice analysis, then provides personalized recommendations and well-being summaries.
