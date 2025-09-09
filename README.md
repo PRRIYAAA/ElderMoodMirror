@@ -1,4 +1,3 @@
-
 # Elder Mood Mirror 
 
 An AI-powered mental wellness companion designed for elderly individuals.  
@@ -36,3 +35,9 @@ The app monitors mood through surveys, facial expressions, and voice analysis, t
    ```bash
    git clone https://github.com/yourusername/elder-mood-mirror.git
    cd elder-mood-mirror
+2. Install Flutter dependencies
+   ```
+   flutter pub get
+3. Run the app on an emulator or connected device
+   ```
+   flutter run
