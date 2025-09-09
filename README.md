@@ -73,9 +73,10 @@ cd ElderMoodMirror
 cd frontend
 flutter pub get
 flutter run
+
 ```
 
-##📊 Future Enhancements
+## 📊 Future Enhancements
 
 - AI-driven personalized recommendations.
 - Caregiver monitoring dashboard.
