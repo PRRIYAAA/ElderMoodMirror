@@ -33,6 +33,9 @@ The app integrates **daily surveys, facial mood detection, motivational quotes, 
 
 ---
 
+## Figma 
+![Figma Link](https://icon-curve-05584395.figma.site)
+
 ## 🏗️ System Architecture  
 
 ![System Architecture](assets/images/architecture.png)  
