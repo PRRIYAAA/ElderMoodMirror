@@ -1,4 +1,4 @@
-# Elder Mood Mirror (EMM)  
+# Elder Mood Mirror Application (EMMA)  
 
 Elder Mood Mirror (EMM) is an AI-powered elder-care mobile application designed to monitor, analyze, and improve the emotional well-being of elderly individuals.  
 The app integrates **daily surveys, facial mood detection, motivational quotes, and AI-generated insights** to provide emotional support and timely interventions.  
