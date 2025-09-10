@@ -19,8 +19,7 @@ The app integrates **daily surveys, facial mood detection, motivational quotes, 
 
 ### 🎥 Video Walkthrough  
 ![App Demo](ElderMoodMirror.gif)  
-*(Replace `demo.gif` with your converted GIF from local video)*  
-
+ 
 ---
 
 ## 🖼️ Screenshots  
