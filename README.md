@@ -36,7 +36,7 @@ The app integrates **daily surveys, facial mood detection, motivational quotes, 
 
 ## 🏗️ System Architecture  
 
-![System Architecture](assets/images/architecture.png)  
+![System Architecture](WhatsApp%20Image%202025-09-10%20at%2020.54.41_2b8d6c60.jpg)  
 
 **Workflow:**  
 1. Elder interacts with mobile app (Flutter).  
