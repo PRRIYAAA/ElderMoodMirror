@@ -18,23 +18,33 @@ class StartScreen extends StatefulWidget {
 class _StartScreenState extends State<StartScreen> {
   String _nextSlotMessage = "";
   bool _hasInitialized = false;
-  bool _showMiniButton = false;
+  bool _showMiniButton = true; // Start true and manage with _maybeShowQuote
   late QuoteItem _todayQuote;
+
+  // Use a unique key for the RepaintBoundary in the dialog
+  final GlobalKey _quoteRepaintBoundaryKey = GlobalKey();
+
 
   @override
   void initState() {
     super.initState();
     _loadQuoteForSimulatedDate();
     _checkIfFirstAnalysisToday();
-    _maybeShowQuote();
+    // Schedule the quote pop-up to happen after the first frame build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeShowQuote();
+    });
   }
 
   Future<void> _loadQuoteForSimulatedDate() async {
     final prefs = await SharedPreferences.getInstance();
+    // Load simulated date or use today's date
     final simulatedDate = prefs.getString('current_app_date') ??
         DateTime.now().toIso8601String().substring(0, 10);
+    // Calculate day of year
     final dayOfYear = DateTime.parse(simulatedDate).difference(DateTime(DateTime.now().year, 1, 1)).inDays;
     _todayQuote = getQuoteByIndex(dayOfYear);
+    setState(() {}); // Rebuild to ensure _todayQuote is available
   }
 
   Future<void> _checkIfFirstAnalysisToday() async {
@@ -43,68 +53,135 @@ class _StartScreenState extends State<StartScreen> {
     final shownDate = prefs.getString('start_card_shown_date');
     final analysisDone = prefs.getBool('mood_analysis_done_today') ?? false;
 
+    // This logic seems intended to control a different UI element, but
+    // for the quote bubble we mainly manage with _maybeShowQuote logic.
     if (analysisDone && shownDate != today) {
       await prefs.setString('start_card_shown_date', today);
     }
 
+    // The mini button should be shown unless the full quote dialog is shown
     setState(() {
       _showMiniButton = true;
     });
   }
 
   Future<void> _maybeShowQuote() async {
+    if (!mounted) return;
     if (widget.showQuoteOnEntry) {
       final prefs = await SharedPreferences.getInstance();
       final today = prefs.getString('current_app_date') ?? DateTime.now().toIso8601String().substring(0, 10);
       final lastShown = prefs.getString('quote_shown_date');
 
       if (lastShown != today) {
+        // Mark as shown immediately to prevent repeated pop-ups on hot reload/re-entry
         await prefs.setString('quote_shown_date', today);
+        // Ensure _todayQuote is loaded before trying to show it
+        if (_todayQuote == null) {
+          await _loadQuoteForSimulatedDate();
+        }
+
+        // Show the dialog after a slight delay to ensure the UI is stable
         await Future.delayed(const Duration(milliseconds: 100));
-        _showQuoteDialog();
-        setState(() => _showMiniButton = false);
+        await _showQuoteDialog();
+
+        // The dialog is modal, so we don't need to explicitly hide the mini button,
+        // but we'll re-enable it when the dialog is dismissed.
       }
     }
   }
 
   Future<void> _showQuoteDialog() async {
-    final imageBytes = await renderQuoteAsImage(context, _todayQuote);
-    if (imageBytes == null) return;
+    if (!mounted) return;
 
-    // ignore: use_build_context_synchronously
-    showDialog(
+    // Temporarily disable the mini button while the full dialog is up
+    setState(() => _showMiniButton = false);
+
+    await showDialog(
       context: context,
-      barrierDismissible: true,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
+      barrierDismissible: true, // Allows dismissing by tapping the barrier
+      builder: (dialogContext) {
+        // Use a StateSetter in the dialog's builder to ensure quote is loaded
+        // This is safer than relying on async outside the builder.
+        final quoteWidget = _buildQuoteWidget(_todayQuote, _quoteRepaintBoundaryKey);
+
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          backgroundColor: Colors.transparent, // Use transparent background for the dialog
+          // to let the inner container define the appearance
+          elevation: 0,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.memory(
-                  imageBytes,
-                  width: 280, // ensures it fits within the dialog
-                  fit: BoxFit.contain,
-                ),
-              ),
+              // The quote image widget
+              quoteWidget,
               const SizedBox(height: 10),
+              // Close button
               TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Close", style: TextStyle(color: Colors.teal)),
+                onPressed: () => Navigator.pop(dialogContext),
+                style: TextButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10)
+                ),
+                child: const Text("Close", style: TextStyle(color: Colors.teal, fontSize: 16)),
               ),
             ],
           ),
+        );
+      },
+    );
+
+    // Re-enable the mini button once the dialog is dismissed
+    setState(() => _showMiniButton = true);
+  }
+
+  // Helper method to build the widget that will be rendered as an image
+  Widget _buildQuoteWidget(QuoteItem item, GlobalKey key) {
+    return RepaintBoundary(
+      key: key,
+      child: Container(
+        width: 300,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFDEFE1),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: const [
+            BoxShadow(blurRadius: 8, color: Colors.black38, offset: Offset(0, 4)),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('🌞 Daily Quote',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            Text(
+              '"${item.quote}"',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  fontSize: 18, fontStyle: FontStyle.italic, color: Colors.brown),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              item.affirmation,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16, color: Colors.teal),
+            ),
+          ],
         ),
       ),
     );
   }
 
 
-  void _expandCard() => _showQuoteDialog();
+  void _expandCard() async {
+    // Ensure quote is loaded
+    if (_todayQuote == null) {
+      await _loadQuoteForSimulatedDate();
+    }
+    // Show the dialog
+    _showQuoteDialog();
+  }
 
   @override
   void didChangeDependencies() {
@@ -210,7 +287,7 @@ class _StartScreenState extends State<StartScreen> {
               left: 0,
               right: 0,
               child: GestureDetector(
-                onTap: _expandCard,
+                onTap: _expandCard, // Use the fixed expand method
                 child: FloatingQuoteBubble(item: _todayQuote),
               ),
             ),

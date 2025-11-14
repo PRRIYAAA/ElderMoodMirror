@@ -1,87 +1,50 @@
 import 'package:flutter/material.dart';
 import 'quote_utils.dart';
 
-class FloatingQuoteBubble extends StatefulWidget {
+class FloatingQuoteBubble extends StatelessWidget {
   final QuoteItem item;
 
   const FloatingQuoteBubble({super.key, required this.item});
 
-  @override
-  State<FloatingQuoteBubble> createState() => _FloatingQuoteBubbleState();
-}
-
-class _FloatingQuoteBubbleState extends State<FloatingQuoteBubble> {
-  Image? quoteImage;
-
-  @override
-  void initState() {
-    super.initState();
-    _generateImage();
-  }
-
-  Future<void> _generateImage() async {
-    final bytes = await renderQuoteAsImage(context, widget.item);
-    if (bytes != null) {
-      setState(() {
-        quoteImage = Image.memory(bytes, fit: BoxFit.cover);
-      });
-    }
-  }
-
-  void _showPopup() async {
-    final bytes = await renderQuoteAsImage(context, widget.item);
-    if (bytes == null) return;
-
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        backgroundColor: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.memory(bytes),
-              const SizedBox(height: 10),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Close", style: TextStyle(color: Colors.teal)),
-              )
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // The logic for onTap and showing the popup is moved to StartScreen
+  // This widget is now just a visual representation of the mini-quote button.
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _showPopup,
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: const [
-            BoxShadow(blurRadius: 6, color: Colors.black26, offset: Offset(2, 2)),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.image, size: 18, color: Colors.teal),
-            const SizedBox(width: 6),
-            if (quoteImage != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox(width: 80, height: 50, child: quoteImage),
-              )
-            else
-              const Text("Loading...", style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic)),
-          ],
-        ),
+    // We only show the quote's emoji and affirmation text in the mini bubble
+    final String emoji = item.quote.split(' ').first;
+    final String shortAffirmation = item.affirmation;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 40),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(blurRadius: 6, color: Colors.black26, offset: Offset(2, 2)),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            emoji, // Display the emoji
+            style: const TextStyle(fontSize: 18),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              shortAffirmation, // Display the affirmation
+              style: const TextStyle(fontSize: 14, color: Colors.teal, fontWeight: FontWeight.w500),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Icon(Icons.touch_app, size: 18, color: Colors.teal),
+        ],
       ),
     );
   }

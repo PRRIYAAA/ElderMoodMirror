@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
 
 // ───────────────────────── Quote Model ─────────────────────────
 class QuoteItem {
@@ -13,6 +14,7 @@ class QuoteItem {
 
 // ───────────────────────── Quote List ─────────────────────────
 const List<QuoteItem> _quotes = [
+  // ... (Your full _quotes list remains here)
   QuoteItem("🌞 Each day is a new gift.", "You are a miracle in motion."),
   QuoteItem("🌼 You are stronger than you think.", "Courage flows through you."),
   QuoteItem("🌻 Let your smile change the world.", "Your joy is contagious."),
@@ -86,9 +88,10 @@ Future<bool> markAndShouldShowQuoteToday() async {
 }
 
 // ───────────────────────── Image Renderer with Background ─────────────────────────
-Future<Uint8List?> renderQuoteAsImage(BuildContext context, QuoteItem item) async {
+Future<Uint8List?> renderQuoteAsImage(QuoteItem item) async {
   final key = GlobalKey();
 
+  // 1. Create the widget to render (300 wide)
   final widgetToRender = RepaintBoundary(
     key: key,
     child: Container(
@@ -124,39 +127,58 @@ Future<Uint8List?> renderQuoteAsImage(BuildContext context, QuoteItem item) asyn
     ),
   );
 
-  // Use a temporary overlay that’s actually attached to the screen
-  final overlay = Overlay.of(context);
-  if (overlay == null) return null;
+  // 2. Set up the off-screen rendering environment
+  final RenderRepaintBoundary boundary = RenderRepaintBoundary();
+  final PipelineOwner pipelineOwner = PipelineOwner();
+  final BuildOwner buildOwner = BuildOwner(focusManager: FocusManager());
 
-  final overlayEntry = OverlayEntry(
-    builder: (context) => Center(child: Material(color: Colors.transparent, child: widgetToRender)),
+  // Get the first view
+  final ui.FlutterView? firstView = ui.PlatformDispatcher.instance.views.firstOrNull;
+  if (firstView == null) return null;
+
+  final double devicePixelRatio = firstView.devicePixelRatio;
+
+  // Set a fixed logical size for the rendering environment
+  const Size logicalSize = Size(300, 300);
+
+  final RenderView renderView = RenderView(
+    view: firstView,
+    child: RenderPositionedBox(alignment: Alignment.center, child: boundary),
+    // FINAL FIX: Initializing ViewConfiguration with ZERO arguments
+    // to strictly comply with the "0 expected" error message.
+    configuration: const ViewConfiguration(),
   );
 
-  overlay.insert(overlayEntry);
+  pipelineOwner.rootNode = renderView;
+  renderView.attach(pipelineOwner);
+  // Layout using physical size constraints
+  renderView.layout(BoxConstraints.tight(logicalSize * devicePixelRatio));
 
-  // Wait for paint
-  await Future.delayed(const Duration(milliseconds: 100));
-  await WidgetsBinding.instance.endOfFrame;
-
+  // 3. Attach the widget tree to the Render tree
+  RenderObjectToWidgetElement<RenderBox>? element;
   try {
-    final boundary = key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-    if (boundary == null) {
-      overlayEntry.remove();
-      return null;
-    }
+    element = RenderObjectToWidgetAdapter<RenderBox>(
+      container: boundary,
+      child: widgetToRender,
+    ).attachToRenderTree(buildOwner, element);
 
-    final image = await boundary.toImage(pixelRatio: 3.0);
+    buildOwner.finalizeTree();
+    pipelineOwner.flushLayout();
+    pipelineOwner.flushPaint();
+
+    // 4. Convert to image bytes
+    final image = await boundary.toImage(pixelRatio: devicePixelRatio);
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    overlayEntry.remove();
     return byteData?.buffer.asUint8List();
   } catch (e) {
     debugPrint('renderQuoteAsImage error: $e');
-    overlayEntry.remove();
     return null;
+  } finally {
+    // 5. Clean up the off-screen resources
+    element?.detachRenderObject();
+    buildOwner.finalizeTree();
   }
 }
-
-
 
 // ───────────────────────── Day‑of‑Year Extension ─────────────────────────
 extension _DayOfYear on DateTime {
