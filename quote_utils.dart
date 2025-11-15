@@ -9,7 +9,12 @@ import 'package:flutter/widgets.dart';
 class QuoteItem {
   final String quote;
   final String affirmation;
+
   const QuoteItem(this.quote, this.affirmation);
+
+  // FIX: Add a getter to extract the first character/emoji from the quote string.
+  String get emoji => quote.substring(0, 2).trim();
+// We use substring(0, 2) to safely capture multi-byte emojis.
 }
 
 // ───────────────────────── Quote List ─────────────────────────

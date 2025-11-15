@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart'; // Required package
 import 'survey_screen.dart';
 import 'start_screen.dart';
 
@@ -21,14 +23,30 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
 
   String? age, bgroup, gender, disability, tabletName, tabletFrequency;
 
+  // New state for profile picture
+  String? _profilePicPath;
+
   bool hasBP = false, hasDiabetes = false, hasHeart = false, hasAsthma = false;
   bool showOtherConditionField = false;
   bool showOtherDisabilityField = false;
+
+  // Define required fields for simplified validation check
+  final requiredFields = ['name', 'mobile', 'guardianEmail', 'age', 'bgroup', 'gender', 'disability'];
+
 
   @override
   void initState() {
     super.initState();
     if (widget.isEditing) _loadUserInfo();
+    else _setInitialState();
+  }
+
+  void _setInitialState() {
+    // Set default placeholder for dropdowns
+    age = '60';
+    bgroup = 'O+';
+    gender = 'Male';
+    disability = 'None';
   }
 
   Future<void> _loadUserInfo() async {
@@ -38,6 +56,9 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
       mobileController.text = prefs.getString('user_mobile_id') ?? '';
       guardianEmailController.text = prefs.getString('guardian_email') ?? '';
       clinicEmailController.text = prefs.getString('clinic_email') ?? '';
+
+      _profilePicPath = prefs.getString('user_profile_pic'); // Load profile pic path
+
       age = prefs.getString('user_age');
       bgroup = prefs.getString('user_bgroup');
       gender = prefs.getString('user_gender');
@@ -45,8 +66,8 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
       tabletName = prefs.getString('tablet_name');
       tabletFrequency = prefs.getString('tablet_frequency');
       otherDisabilityController.text = prefs.getString('disability_other') ?? '';
+
       showOtherDisabilityField = disability == 'Other';
-      showOtherConditionField = disability == 'None';
 
       final medical = prefs.getString('user_medical') ?? '';
       hasBP = medical.contains("BP");
@@ -57,12 +78,27 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
       final others = medical.split(', ').where((x) =>
       !["BP", "Diabetes", "Heart", "Asthma"].contains(x)).join(', ');
       otherMedicalController.text = others;
+      // Show 'Other Conditions' field if 'None' is selected AND there are previously saved 'Other' conditions
+      showOtherConditionField = (disability == 'None' || disability == null) && otherMedicalController.text.isNotEmpty;
     });
   }
 
+  Future<void> _pickProfilePicture() async {
+    final ImagePicker picker = ImagePicker();
+    // Using image source gallery
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
+
+    if (image != null) {
+      setState(() {
+        _profilePicPath = image.path;
+      });
+    }
+  }
+
   Future<void> _saveUserInfo() async {
-    if ([nameController.text, mobileController.text, guardianEmailController.text, age, bgroup, gender, disability]
-        .any((e) => e == null || e.toString().trim().isEmpty)) {
+    // Basic validation check
+    final requiredValues = [nameController.text, mobileController.text, guardianEmailController.text, age, bgroup, gender, disability];
+    if (requiredValues.any((e) => e == null || e.toString().trim().isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill all required fields")),
       );
@@ -81,7 +117,7 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
       if (hasDiabetes) "Diabetes",
       if (hasHeart) "Heart",
       if (hasAsthma) "Asthma",
-      if (showOtherConditionField && otherMedicalController.text.trim().isNotEmpty)
+      if (otherMedicalController.text.trim().isNotEmpty)
         otherMedicalController.text.trim(),
     ].join(', ');
 
@@ -98,15 +134,22 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
     await prefs.setString('tablet_frequency', tabletFrequency ?? '');
     await prefs.setString('guardian_email', guardianEmailController.text.trim());
     await prefs.setString('clinic_email', clinicEmailController.text.trim());
+    await prefs.setString('user_profile_pic', _profilePicPath ?? ''); // Save profile pic path
     await prefs.setBool('isFirstTime', false);
 
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("User information saved successfully!")),
+    );
+
     if (widget.isEditing) {
+      // Navigate back to the StartScreen (which will rebuild and show the new profile)
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => StartScreen(nextScreen: const SurveyScreen())),
+        MaterialPageRoute(builder: (_) => const StartScreen(nextScreen: SurveyScreen())),
             (route) => false,
       );
     } else {
+      // First time setup, navigate to survey
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const SurveyScreen()),
@@ -114,15 +157,35 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
     }
   }
 
+  // Helper for consistent TextFields
+  Widget _buildTextField(TextEditingController controller, String label, {TextInputType type = TextInputType.text, bool required = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: type,
+        decoration: InputDecoration(
+          labelText: required ? "$label *" : label,
+          border: const OutlineInputBorder(),
+        ),
+      ),
+    );
+  }
+
+  // Helper for consistent Dropdowns
   Widget _buildDropdown(String label, String? value, List<String> items, void Function(String?) onChanged) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: InputDecorator(
-        decoration: InputDecoration(labelText: label, border: OutlineInputBorder()),
+        decoration: InputDecoration(
+          labelText: "$label *",
+          border: const OutlineInputBorder(),
+        ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
             isExpanded: true,
             value: value,
+            hint: Text("Select $label"),
             items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
             onChanged: onChanged,
           ),
@@ -131,64 +194,165 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
     );
   }
 
+  // Helper for section headers
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16, bottom: 8),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.teal)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    showOtherConditionField = (disability ?? '') == 'None';
-    showOtherDisabilityField = (disability ?? '') == 'Other';
+    showOtherDisabilityField = (disability ?? 'None') == 'Other';
+    // Only show the "Other Conditions" field if disability is 'None'
+    showOtherConditionField = (disability ?? 'None') == 'None';
+
+    // Logic to determine the displayed ImageProvider
+    final ImageProvider? imageProvider = _profilePicPath != null && _profilePicPath!.isNotEmpty
+        ? FileImage(File(_profilePicPath!))
+        : const AssetImage('assets/images/default_avatar.png'); // Default Asset Image
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Elder Info")),
+      backgroundColor: Colors.grey.shade100,
+      appBar: AppBar(
+        title: Text(widget.isEditing ? "Update Elder Profile" : "Elder Profile Setup"),
+        backgroundColor: Colors.teal,
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(children: [
-          _buildDropdown("Age", age, List.generate(41, (i) => (60 + i).toString()), (v) => setState(() => age = v)),
-          _buildDropdown("Blood Group", bgroup, ['A+', 'B+', 'AB+', 'O+', 'A-', 'B-', 'AB-', 'O-'], (v) => setState(() => bgroup = v)),
-          _buildDropdown("Gender", gender, ['Male', 'Female', 'Other'], (v) => setState(() => gender = v)),
-          _buildDropdown("Disability", disability, ['None', 'Visual', 'Hearing', 'Mobility', 'Cognitive', 'Bedridden', 'Other'], (v) {
-            setState(() {
-              disability = v;
-              showOtherConditionField = v == 'None';
-              showOtherDisabilityField = v == 'Other';
-            });
-          }),
-          if (showOtherDisabilityField)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 18),
-              child: TextField(
-                controller: otherDisabilityController,
-                decoration: const InputDecoration(labelText: "Specify Other Disability", border: OutlineInputBorder()),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            // --- PROFILE PICTURE SECTION ---
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              margin: const EdgeInsets.only(bottom: 25),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    // Profile Image Display
+                    GestureDetector(
+                      onTap: _pickProfilePicture,
+                      child: CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Colors.teal.shade100,
+                        backgroundImage: imageProvider, // Use the determined image provider
+                        child: (_profilePicPath == null || _profilePicPath!.isEmpty) && imageProvider == null
+                            ? Icon(Icons.person, size: 50, color: Colors.teal) // Fallback to Icon if asset not found
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextButton.icon(
+                      onPressed: _pickProfilePicture,
+                      icon: const Icon(Icons.camera_alt, size: 18),
+                      label: Text((_profilePicPath != null && _profilePicPath!.isNotEmpty) ? "Change Photo" : "Add Profile Photo"),
+                      style: TextButton.styleFrom(foregroundColor: Colors.teal),
+                    ),
+                  ],
+                ),
               ),
             ),
-          if (showOtherConditionField)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 18),
-              child: TextField(
-                controller: otherMedicalController,
-                decoration: const InputDecoration(labelText: "Other Conditions", border: OutlineInputBorder()),
+
+            // --- USER & CONTACT INFO ---
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              margin: const EdgeInsets.only(bottom: 20),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    _buildSectionHeader("Personal & Contact Information"),
+                    _buildTextField(nameController, "Name", required: true),
+                    _buildTextField(mobileController, "Mobile ID", type: TextInputType.phone, required: true),
+                    _buildTextField(guardianEmailController, "Guardian Email ID", type: TextInputType.emailAddress, required: true),
+                    _buildTextField(clinicEmailController, "Clinic Email ID (Optional)", type: TextInputType.emailAddress, required: false),
+                  ],
+                ),
               ),
             ),
-          _buildDropdown("Tablet Name", tabletName, ['None', 'Aspirin', 'Paracetamol', 'BP Med', 'Sugar Control'], (v) => setState(() => tabletName = v)),
-          _buildDropdown("Tablet Frequency", tabletFrequency, ['Once a day', 'Twice a day', 'Thrice a day'], (v) => setState(() => tabletFrequency = v)),
-          TextField(controller: nameController, decoration: const InputDecoration(labelText: "Name")),
-          TextField(controller: mobileController, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: "Mobile")),
-          const SizedBox(height: 10),
-          const Align(
-            alignment: Alignment.centerLeft,
-            child: Text("Medical Conditions", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          ),
-          CheckboxListTile(title: const Text("BP"), value: hasBP, onChanged: (v) => setState(() => hasBP = v!)),
-          CheckboxListTile(title: const Text("Diabetes"), value: hasDiabetes, onChanged: (v) => setState(() => hasDiabetes = v!)),
-          CheckboxListTile(title: const Text("Heart"), value: hasHeart, onChanged: (v) => setState(() => hasHeart = v!)),
-          CheckboxListTile(title: const Text("Asthma"), value: hasAsthma, onChanged: (v) => setState(() => hasAsthma = v!)),
-          TextField(controller: guardianEmailController, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: "Guardian Email ID (Required)")),
-          TextField(controller: clinicEmailController, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: "Clinic Email ID (Optional)")),
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.check_circle),
-            label: const Text("Save"),
-            onPressed: _saveUserInfo,
-          )
-        ]),
+
+            // --- HEALTH & DISABILITY INFO ---
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              margin: const EdgeInsets.only(bottom: 20),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    _buildSectionHeader("Health & Physical Status"),
+
+                    _buildDropdown("Age", age, List.generate(41, (i) => (60 + i).toString()), (v) => setState(() => age = v)),
+                    _buildDropdown("Blood Group", bgroup, ['A+', 'B+', 'AB+', 'O+', 'A-', 'B-', 'AB-', 'O-'], (v) => setState(() => bgroup = v)),
+                    _buildDropdown("Gender", gender, ['Male', 'Female', 'Other'], (v) => setState(() => gender = v)),
+
+                    _buildDropdown("Disability", disability, ['None', 'Visual', 'Hearing', 'Mobility', 'Cognitive', 'Bedridden', 'Other'], (v) {
+                      setState(() {
+                        disability = v;
+                        showOtherDisabilityField = v == 'Other';
+                        showOtherConditionField = v == 'None';
+                      });
+                    }),
+
+                    if (showOtherDisabilityField)
+                      _buildTextField(otherDisabilityController, "Specify Other Disability", required: true),
+
+                    // Medical Conditions Checkboxes
+                    _buildSectionHeader("Chronic Conditions"),
+
+                    CheckboxListTile(title: const Text("BP (Blood Pressure)"), activeColor: Colors.teal, value: hasBP, onChanged: (v) => setState(() => hasBP = v!)),
+                    CheckboxListTile(title: const Text("Diabetes"), activeColor: Colors.teal, value: hasDiabetes, onChanged: (v) => setState(() => hasDiabetes = v!)),
+                    CheckboxListTile(title: const Text("Heart Condition"), activeColor: Colors.teal, value: hasHeart, onChanged: (v) => setState(() => hasHeart = v!)),
+                    CheckboxListTile(title: const Text("Asthma"), activeColor: Colors.teal, value: hasAsthma, onChanged: (v) => setState(() => hasAsthma = v!)),
+
+                    if (showOtherConditionField) // Only appears if Disability is 'None'
+                      _buildTextField(otherMedicalController, "Other Medical Conditions (e.g., Arthritis)", required: false),
+                  ],
+                ),
+              ),
+            ),
+
+            // --- MEDICATION INFO ---
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              margin: const EdgeInsets.only(bottom: 20),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    _buildSectionHeader("Medication Schedule"),
+                    _buildDropdown("Primary Tablet Name", tabletName, ['None', 'Aspirin', 'Paracetamol', 'BP Med', 'Sugar Control', 'Other'], (v) => setState(() => tabletName = v)),
+                    _buildDropdown("Tablet Frequency", tabletFrequency, ['Once a day', 'Twice a day', 'Thrice a day', 'As needed'], (v) => setState(() => tabletFrequency = v)),
+                  ],
+                ),
+              ),
+            ),
+
+            // --- SAVE BUTTON ---
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.check_circle_outline, color: Colors.white),
+                label: Text(widget.isEditing ? "Update Profile" : "Complete Setup", style: TextStyle(fontSize: 18, color: Colors.white)),
+                onPressed: _saveUserInfo,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 30),
+          ],
+        ),
       ),
     );
   }
