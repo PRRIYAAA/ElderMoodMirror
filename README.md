@@ -32,7 +32,7 @@ Aging individuals, particularly those with reduced mobility, often struggle to c
 ## 🖼️ Prototype & Screenshots
 
 ### Figma Prototype Link
-🔗 https://icon-curve-05584395.figma.site
+🔗 https://emma.figma.site/
 
 | Main Dashboard | Daily Survey | Mood Detection | Analysis Summary | Email Report (Popped) |
 | :---: | :---: | :---: | :---: | :---: |
